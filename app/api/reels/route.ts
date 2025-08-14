@@ -57,9 +57,20 @@ export async function GET(request: NextRequest) {
       isLiked: session ? reel.likes?.some((like: any) => like.user._id.toString() === session.userId) : false,
       isSaved: session ? reel.saves?.some((save: any) => save.user.toString() === session.userId) : false,
       isOwner: session ? reel.author._id.toString() === session.userId : false,
+      isExternal: reel.isExternal || false,
+      externalSource: reel.externalSource,
+      hashtags: reel.hashtags || [],
       createdAt: reel.createdAt,
       updatedAt: reel.updatedAt,
     }))
+
+    console.log(`Returning ${formattedReels.length} reels:`, formattedReels.map(r => ({
+      id: r.id,
+      caption: r.caption?.substring(0, 50),
+      mediaUrl: r.mediaUrl?.substring(0, 100),
+      mediaType: r.mediaType,
+      isExternal: r.isExternal
+    })))
 
     return NextResponse.json({
       reels: formattedReels,

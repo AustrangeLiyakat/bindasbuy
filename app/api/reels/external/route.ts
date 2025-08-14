@@ -24,7 +24,16 @@ export async function POST(request: NextRequest) {
       externalSource,
     } = await request.json()
 
+    console.log("External reel request body:", {
+      mediaUrl,
+      caption,
+      hashtags,
+      music,
+      externalSource
+    })
+
     if (!mediaUrl || !caption) {
+      console.log("Validation failed:", { mediaUrl: !!mediaUrl, caption: !!caption })
       return NextResponse.json(
         { message: "Media URL and caption are required" },
         { status: 400 }
@@ -54,6 +63,7 @@ export async function POST(request: NextRequest) {
     // Create reel in database
     const newReel = new Reel({
       userId: session.userId,
+      author: session.userId,  // Add the author field
       mediaUrl,
       mediaType,
       thumbnailUrl: thumbnailUrl || mediaUrl,
@@ -64,17 +74,24 @@ export async function POST(request: NextRequest) {
       isPublic: true,
       isExternal,
       externalSource: externalSource || "unknown",
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      views: 0,
+      college: "Test College", // Add default college
+      analytics: {
+        totalViews: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        totalSaves: 0,
+        totalShares: 0,
+        averageWatchTime: 0,
+        engagementRate: 0,
+        lastUpdated: new Date()
+      }
     })
 
     await newReel.save()
 
     // Populate the reel with user data
     const populatedReel = await Reel.findById(newReel._id)
-      .populate("userId", "name username avatar isVerified")
+      .populate("author", "name email avatar college")
       .lean()
 
     return NextResponse.json({

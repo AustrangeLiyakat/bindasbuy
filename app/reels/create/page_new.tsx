@@ -73,16 +73,11 @@ export default function CreateReelPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            mediaUrl: externalUrl,
+            externalUrl,
             caption,
             hashtags: hashtags.split(",").map(tag => tag.trim()).filter(Boolean),
-            music: (musicName || musicArtist) ? {
-              title: musicName || "Unknown",
-              artist: musicArtist || "Unknown"
-            } : undefined,
-            externalSource: externalUrl.includes("instagram") ? "instagram" : 
-                           externalUrl.includes("tiktok") ? "tiktok" : 
-                           externalUrl.includes("youtube") ? "youtube" : "external"
+            musicName: musicName || undefined,
+            musicArtist: musicArtist || undefined,
           }),
         })
       } else {
