@@ -53,7 +53,6 @@ export interface IReel extends Document {
     lastUpdated: Date
   }
   college: string
-  isPublic: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -228,10 +227,6 @@ const ReelSchema = new Schema<IReel>(
     college: {
       type: String,
       required: true,
-    },
-    isPublic: {
-      type: Boolean,
-      default: true,
     },
   },
   {

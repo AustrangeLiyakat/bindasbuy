@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import connectDB from "@/lib/mongodb"
 import Reel from "@/models/Reel"
+import User from "@/models/User"
 import { getSession } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
@@ -10,6 +11,12 @@ export async function POST(request: NextRequest) {
     const session = await getSession()
     if (!session) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+    }
+
+    // Get user data including college
+    const user = await User.findById(session.userId).select('college name avatar')
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 })
     }
 
     const {
@@ -63,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Create reel in database
     const newReel = new Reel({
       userId: session.userId,
-      author: session.userId,  // Add the author field
+      author: session.userId,
       mediaUrl,
       mediaType,
       thumbnailUrl: thumbnailUrl || mediaUrl,
@@ -71,20 +78,14 @@ export async function POST(request: NextRequest) {
       hashtags: hashtagArray,
       music,
       duration: duration || 0,
+      college: user.college, // Get college from user
       isPublic: true,
       isExternal,
       externalSource: externalSource || "unknown",
-      college: "Test College", // Add default college
-      analytics: {
-        totalViews: 0,
-        totalLikes: 0,
-        totalComments: 0,
-        totalSaves: 0,
-        totalShares: 0,
-        averageWatchTime: 0,
-        engagementRate: 0,
-        lastUpdated: new Date()
-      }
+      likes: [], // Empty array instead of missing
+      comments: [], // Empty array instead of missing
+      shares: [], // Empty array instead of missing
+      views: [], // Empty array instead of missing
     })
 
     await newReel.save()

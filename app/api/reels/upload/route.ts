@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import connectDB from "@/lib/mongodb"
 import Reel from "@/models/Reel"
+import User from "@/models/User"
 import { getSession } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
@@ -14,26 +15,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
+    // Get user data including college
+    const user = await User.findById(session.userId).select('college name avatar')
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 })
+    }
+
     const formData = await request.formData()
-    const file = formData.get("video") as File
+    const file = formData.get("file") as File || formData.get("video") as File // Support both field names
+    const type = formData.get("type") as string
     const caption = formData.get("caption") as string
     const hashtags = formData.get("hashtags") as string
     const musicName = formData.get("musicName") as string
     const musicArtist = formData.get("musicArtist") as string
 
     if (!file) {
-      return NextResponse.json({ message: "No video file provided" }, { status: 400 })
+      return NextResponse.json({ message: "No file provided" }, { status: 400 })
     }
 
     if (!caption) {
       return NextResponse.json({ message: "Caption is required" }, { status: 400 })
     }
 
-    // Validate file type
-    const allowedTypes = ["video/mp4", "video/webm", "video/ogg", "video/avi"]
-    if (!allowedTypes.includes(file.type)) {
+    // Determine media type
+    const mediaType = type || (file.type.startsWith("video/") ? "video" : "image")
+
+    // Validate file type based on media type
+    const allowedVideoTypes = ["video/mp4", "video/webm", "video/ogg", "video/avi", "video/mov", "video/quicktime"]
+    const allowedImageTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+    
+    if (mediaType === "video" && !allowedVideoTypes.includes(file.type)) {
       return NextResponse.json(
-        { message: "Invalid file type. Only video files are allowed." },
+        { message: "Invalid video file type. Supported formats: MP4, WebM, OGG, AVI, MOV" },
+        { status: 400 }
+      )
+    }
+    
+    if (mediaType === "image" && !allowedImageTypes.includes(file.type)) {
+      return NextResponse.json(
+        { message: "Invalid image file type. Supported formats: JPEG, PNG, GIF, WebP" },
         { status: 400 }
       )
     }
@@ -67,35 +87,38 @@ export async function POST(request: NextRequest) {
     // Save file
     await writeFile(filepath, buffer)
 
-    // Generate video URL
-    const videoUrl = `/uploads/reels/${filename}`
+    // Generate media URL
+    const mediaUrl = `/uploads/reels/${filename}`
 
     // Parse hashtags
     const hashtagArray = hashtags
-      ? hashtags
-          .split(",")
-          .map((tag) => tag.trim().replace("#", ""))
-          .filter((tag) => tag.length > 0)
+      ? (typeof hashtags === 'string' ? JSON.parse(hashtags) : hashtags)
+          .map((tag: string) => tag.trim().replace("#", ""))
+          .filter((tag: string) => tag.length > 0)
       : []
 
     // Create music object if provided
-    const music = musicName && musicArtist ? { name: musicName, artist: musicArtist } : undefined
+    const music = musicName && musicArtist ? { title: musicName, artist: musicArtist } : undefined
 
     // Create reel in database
     const newReel = new Reel({
       userId: session.userId,
-      mediaUrl: videoUrl,
-      mediaType: "video",
-      thumbnailUrl: videoUrl, // For now, use the same URL. In production, you'd generate a thumbnail
+      author: session.userId, // Set author to same as userId
+      mediaUrl: mediaUrl,
+      mediaType: mediaType,
+      thumbnailUrl: mediaType === "image" ? mediaUrl : undefined, // Use image as thumbnail, generate for video later
       caption,
       hashtags: hashtagArray,
       music,
       duration: 0, // You'd need to extract this from the video file
+      college: user.college, // Get college from user
       isPublic: true,
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      views: 0,
+      isExternal: false, // This is a local upload
+      externalSource: null,
+      likes: [], // Empty array instead of number
+      comments: [], // Empty array instead of number
+      shares: [], // Empty array instead of number
+      views: [], // Empty array instead of number
     })
 
     await newReel.save()
@@ -106,9 +129,9 @@ export async function POST(request: NextRequest) {
       .lean()
 
     return NextResponse.json({
-      message: "Video uploaded successfully",
+      message: "File uploaded successfully",
       reel: populatedReel,
-      videoUrl,
+      mediaUrl,
     })
   } catch (error) {
     console.error("Error uploading video:", error)

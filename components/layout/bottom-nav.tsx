@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Home, ShoppingBag, MessageCircle, Users, User } from "lucide-react"
+import { Home, ShoppingBag, MessageCircle, Users, User, Video } from "lucide-react"
 
 const navItems = [
   {
@@ -19,10 +19,10 @@ const navItems = [
     activePattern: /^\/marketplace/,
   },
   {
-    href: "/feed",
-    icon: Users,
-    label: "Feed",
-    activePattern: /^\/feed/,
+    href: "/reels",
+    icon: Video,
+    label: "Reels",
+    activePattern: /^\/reels/,
   },
   {
     href: "/messages",

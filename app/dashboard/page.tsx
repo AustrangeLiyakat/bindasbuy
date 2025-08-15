@@ -15,9 +15,11 @@ import {
   ArrowRight,
   Package,
   DollarSign,
+  Video,
 } from "lucide-react"
 import Link from "next/link"
 import { BottomNav } from "@/components/layout/bottom-nav"
+import { CreateReelButton } from "@/components/reels/create-reel-button"
 import { mockProducts } from "@/lib/products"
 
 export default function DashboardPage() {
@@ -43,6 +45,13 @@ export default function DashboardPage() {
   const myListings = mockProducts.slice(0, 3)
 
   const quickActions = [
+    {
+      title: "Create Reel",
+      description: "Share a video or story",
+      icon: Video,
+      href: "/reels/create",
+      color: "from-pink-500 to-purple-600",
+    },
     {
       title: "Sell an Item",
       description: "List something for sale",
@@ -251,6 +260,9 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Floating Create Reel Button */}
+      <CreateReelButton variant="floating" />
 
       <BottomNav />
     </div>

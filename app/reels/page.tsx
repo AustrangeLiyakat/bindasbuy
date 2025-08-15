@@ -4,6 +4,9 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { ReelPlayer } from "@/components/reels/reel-player"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
+import Link from "next/link"
 import type { Reel } from "@/types/reels"
 
 export default function ReelsPage() {
@@ -143,24 +146,37 @@ export default function ReelsPage() {
   }
 
   return (
-    <div className="h-screen bg-black overflow-hidden">
+    <div className="min-h-screen bg-black overflow-hidden relative">
       <div
         ref={containerRef}
-        className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+        className="h-screen overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
         onScroll={handleScroll}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {reels.map((reel, index) => (
-          <div key={reel.id} className="h-screen snap-start">
-            <ReelPlayer
-              reel={reel}
-              isActive={index === currentIndex}
-              onLike={() => handleLike(reel.id)}
-              onFollow={() => handleFollow(reel.userId)}
-            />
+          <div key={reel.id} className="h-screen snap-start flex items-center justify-center p-2 sm:p-4">
+            {/* Container with proper aspect ratio - responsive */}
+            <div className="reel-container bg-black rounded-lg overflow-hidden shadow-2xl">
+              <ReelPlayer
+                reel={reel}
+                isActive={index === currentIndex}
+                onLike={() => handleLike(reel.id)}
+                onFollow={() => handleFollow(reel.userId)}
+              />
+            </div>
           </div>
         ))}
       </div>
+      
+      {/* Floating Action Button for Create Reel */}
+      <Link href="/reels/create">
+        <Button 
+          size="lg"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 z-50"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </Link>
     </div>
   )
 }

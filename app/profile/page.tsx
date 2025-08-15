@@ -18,6 +18,8 @@ import {
   Heart,
   MessageCircle,
   ArrowLeft,
+  Video,
+  Plus,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -70,6 +72,12 @@ export default function ProfilePage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link href="/reels/create">
+                <Button variant="default" size="sm" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                  <Video className="h-4 w-4 mr-2" />
+                  Create Reel
+                </Button>
+              </Link>
               {user?.role === "seller" && (
                 <Link href="/seller/dashboard">
                   <Button variant="ghost" size="sm">
@@ -107,7 +115,7 @@ export default function ProfilePage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
                   <div>
                     <h2 className="text-2xl font-bold">{user?.fullName}</h2>
-                    <p className="text-gray-600">@{user?.username}</p>
+                    <p className="text-gray-600">@{user?.email?.split('@')[0] || 'user'}</p>
                     <Badge variant={user?.role === "seller" ? "default" : "secondary"} className="mt-1">
                       {user?.role === "seller" ? "Seller" : "Student"}
                     </Badge>

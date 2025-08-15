@@ -121,3 +121,60 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Reels specific styles */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .reel-container {
+    /* Ensure proper aspect ratio on all devices */
+    aspect-ratio: 9/16;
+    max-width: min(100vw - 2rem, 28rem); /* Max width with padding */
+    width: 100%;
+    margin: 0 auto;
+  }
+  
+  /* Better video sizing for different aspect ratios */
+  .reel-video {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    background: #000;
+  }
+  
+  /* Ensure videos fill the container properly */
+  .reel-video-portrait {
+    object-position: center;
+  }
+  
+  .reel-video-landscape {
+    object-position: center;
+    /* For landscape videos, we might want to letterbox */
+    object-fit: contain;
+  }
+  
+  .reel-video-square {
+    object-position: center;
+  }
+}
+
+/* Mobile specific improvements */
+@media (max-width: 640px) {
+  .reel-container {
+    max-width: calc(100vw - 1rem);
+    border-radius: 0.5rem;
+  }
+}
+
+/* Ensure proper touch handling on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .reel-controls {
+    opacity: 0.8;
+  }
+}

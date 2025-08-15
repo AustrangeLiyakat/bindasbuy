@@ -13,6 +13,7 @@ import Link from "next/link"
 import { ProductCard } from "@/components/marketplace/product-card"
 import { ProductFilters } from "@/components/marketplace/product-filters"
 import { BottomNav } from "@/components/layout/bottom-nav"
+import { CreateReelButton } from "@/components/reels/create-reel-button"
 import { useAuth } from "@/contexts/auth-context"
 import { getProducts, mockProducts } from "@/lib/products"
 import type { Product, ProductFilter } from "@/types/product"
@@ -243,6 +244,9 @@ export default function MarketplacePage() {
           </div>
         </div>
       </div>
+
+      {/* Floating Create Reel Button */}
+      <CreateReelButton variant="floating" />
 
       <BottomNav />
     </div>

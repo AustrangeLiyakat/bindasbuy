@@ -23,15 +23,19 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
   const [videoError, setVideoError] = useState(false)
   const [embedError, setEmbedError] = useState(false)
   const [isInteracting, setIsInteracting] = useState(false)
+  const [videoAspectRatio, setVideoAspectRatio] = useState<'portrait' | 'landscape' | 'square'>('portrait')
   const videoRef = useRef<HTMLVideoElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Determine if this is external content
   const isExternalContent = reel.isExternal || 
-    reel.mediaUrl.includes('instagram.com') || 
-    reel.mediaUrl.includes('tiktok.com') || 
-    reel.mediaUrl.includes('youtube.com')
+    (reel.mediaUrl.includes('instagram.com') || 
+     reel.mediaUrl.includes('tiktok.com') || 
+     reel.mediaUrl.includes('youtube.com')) && !reel.mediaUrl.startsWith('/uploads/')
+
+  // Determine if this is a local uploaded file
+  const isLocalFile = reel.mediaUrl.startsWith('/uploads/') || reel.mediaUrl.startsWith('./uploads/') || !reel.isExternal
 
   console.log("ReelPlayer rendered with reel:", {
     id: reel.id,
@@ -39,6 +43,7 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
     mediaType: reel.mediaType,
     isExternal: reel.isExternal,
     isExternalContent,
+    isLocalFile,
     timestamp: new Date().getTime()
   })
 
@@ -53,6 +58,23 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
       videoSrc: video.src,
       isExternal: isExternalContent
     })
+
+    // Detect video aspect ratio when loaded
+    const handleVideoLoad = () => {
+      if (video.videoWidth && video.videoHeight) {
+        const aspectRatio = video.videoWidth / video.videoHeight
+        if (aspectRatio > 1.2) {
+          setVideoAspectRatio('landscape')
+        } else if (aspectRatio < 0.8) {
+          setVideoAspectRatio('portrait')
+        } else {
+          setVideoAspectRatio('square')
+        }
+        console.log("Video aspect ratio detected:", aspectRatio, videoAspectRatio)
+      }
+    }
+
+    video.addEventListener('loadedmetadata', handleVideoLoad)
 
     const handleVideoPlay = async () => {
       if (isActive) {
@@ -76,7 +98,11 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
     }
 
     handleVideoPlay()
-  }, [isActive, reel.mediaType, reel.mediaUrl, isExternalContent])
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleVideoLoad)
+    }
+  }, [isActive, reel.mediaType, reel.mediaUrl, isExternalContent, videoAspectRatio])
 
   // Auto-hide controls after 3 seconds
   useEffect(() => {
@@ -193,7 +219,19 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
     return num.toString()
   }
 
-  // Helper function to convert external URLs to embeddable format
+  // Get appropriate video CSS class based on aspect ratio
+  const getVideoClassName = () => {
+    const baseClasses = "reel-video h-full w-full rounded-lg"
+    switch (videoAspectRatio) {
+      case 'landscape':
+        return `${baseClasses} reel-video-landscape object-contain`
+      case 'square':
+        return `${baseClasses} reel-video-square object-cover`
+      case 'portrait':
+      default:
+        return `${baseClasses} reel-video-portrait object-cover`
+    }
+  }
   const getEmbeddableUrl = (url: string) => {
     return processVideoUrl(url, reel.externalSource)
   }
@@ -210,6 +248,42 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
 
   const renderMedia = () => {
     if (reel.mediaType === "video") {
+      // Prioritize local files for direct video playback
+      if (isLocalFile || !isExternalContent) {
+        return (
+          <video
+            ref={videoRef}
+            className={getVideoClassName()}
+            loop
+            muted={false} // Start with audio enabled
+            playsInline
+            autoPlay={isActive}
+            poster={getEffectiveThumbnail()}
+            onClick={togglePlay}
+            onMouseEnter={handleInteractionStart}
+            onMouseLeave={handleInteractionEnd}
+            onTouchStart={handleInteractionStart}
+            onTouchEnd={handleInteractionEnd}
+            onError={() => {
+              console.log("Local video failed, trying as external")
+              setVideoError(true)
+            }}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onLoadedData={() => {
+              console.log("Local video loaded successfully")
+              setVideoError(false)
+            }}
+          >
+            <source src={reel.mediaUrl} type="video/mp4" />
+            <source src={reel.mediaUrl} type="video/webm" />
+            <source src={reel.mediaUrl} type="video/ogg" />
+            Your browser does not support the video tag.
+          </video>
+        )
+      }
+      
+      // Handle external content with embedding
       if (isExternalContent) {
         const embeddableUrl = getEmbeddableUrl(reel.mediaUrl)
         
@@ -220,7 +294,7 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
               <iframe
                 ref={iframeRef}
                 src={embeddableUrl + "&autoplay=1&mute=0"} // Enable autoplay with audio
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover rounded-lg"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
@@ -261,7 +335,7 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
               <div className="h-full w-full relative">
                 <video
                   ref={videoRef}
-                  className="h-full w-full object-cover"
+                  className={getVideoClassName()}
                   loop
                   muted={false} // Start with audio enabled
                   playsInline
@@ -314,29 +388,6 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
             )
           }
         }
-      } else {
-        // Handle regular video files
-        return (
-          <video
-            ref={videoRef}
-            className="h-full w-full object-cover"
-            loop
-            muted={false} // Start with audio enabled
-            playsInline
-            poster={getEffectiveThumbnail()}
-            onClick={togglePlay}
-            onMouseEnter={handleInteractionStart}
-            onMouseLeave={handleInteractionEnd}
-            onTouchStart={handleInteractionStart}
-            onTouchEnd={handleInteractionEnd}
-            onError={() => setVideoError(true)}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-          >
-            <source src={reel.mediaUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        )
       }
     } else {
       // Handle images
@@ -352,7 +403,7 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
             src={reel.mediaUrl || "/placeholder.svg"}
             alt={reel.caption}
             fill
-            className="object-cover"
+            className="object-cover rounded-lg"
             priority={isActive}
           />
         </div>
@@ -361,7 +412,7 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
   }
 
   return (
-    <div className="relative h-full w-full bg-black">
+    <div className="relative h-full w-full bg-black rounded-lg overflow-hidden">
       {renderMedia()}
 
       {/* Video Error State - Show for all video types */}
@@ -483,7 +534,8 @@ export function ReelPlayer({ reel, isActive, onLike, onFollow }: ReelPlayerProps
             {/* Content Type Badge */}
             <div className="flex items-center text-white/70 text-xs mt-1">
               <span className="bg-white/20 px-2 py-1 rounded-full">
-                {isExternalContent ? `📱 ${reel.externalSource?.toUpperCase() || 'External'}` : 
+                {isLocalFile ? `📱 ${reel.mediaType === "video" ? "Uploaded Video" : "Uploaded Photo"}` :
+                 isExternalContent ? `🌐 ${reel.externalSource?.toUpperCase() || 'External'}` : 
                  reel.mediaType === "video" ? "📹 Video" : "📷 Photo"}
               </span>
             </div>
